@@ -1,0 +1,266 @@
+Description:  This template deploys the following resources
+  VPC, with 2 AZs and a public and private subnet on each AZ.
+  Internet gateway, with a default route on the public subnets.  
+  NAT gateways (one in each AZ), and default routes for them in the private subnets.
+  EC2 instance in each private subnet, with a simple web page that displays the AZ of the instance.
+  Application Load Balancer that will distribute traffic between the EC2 instances.
+  Auto Scaling Group that will maintain the desired number of EC2 instances depending on the load. 
+  Security groups for the EC2 instances and the Application Load Balancer.
+  Optional - Route 53 record to point to the Application Load Balancer.
+
+#Parameters to be passed to the template at the time of deployment. 
+#You can pass these parameters through the AWS Management Console, AWS CLI, or AWS SDKs.
+#You can customize these parameters or use the default values at the time of deployment.
+Parameters:
+  ProjectName:
+    Description: The project name that is prefixed to resource names
+    Type: String
+    Default: ServiceConsumer
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.1.0.0/16
+
+  PublicSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.1.0/24
+
+  PrivateSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.2.0/24
+
+  PublicSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
+    Type: String
+    Default: 10.1.3.0/24
+
+  PrivateSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Type: String
+    Default: 10.1.4.0/24
+
+  InstanceType:
+    Description: EC2 WebServer  instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+    ConstraintDescription: Must be a valid EC2 instance type.
+
+  EndpointServiceId:
+    Description: Please enter the ID of the endpoint service provider
+    Type: String
+
+#Mappings are used to map keys to corresponding values that are used in the template depending on the region where the stack is being created.
+#In this template, we are using a mapping to map the region to the AMI ID of Amazon Linux 2023
+# You may need to update the AMI ID. You can find the latest AMI IDs on the AWS website or AWS Management Console.
+Mappings:
+  RegionMap:
+    us-east-1:
+     "AMI": "ami-0fff1b9a61dec8a5f"
+    us-east-2:
+     "AMI": "ami-09da212cf18033880"
+    us-west-1:
+      "AMI": "ami-09b2477d43bc5d0ac"
+    us-west-2:
+      "AMI": "ami-0d081196e3df05f4d"
+
+#Resources are the core of the template. They represent the different AWS components that will be created when the template is deployed.
+#All the resources are tagged with the project name to easily identify them in the AWS Management Console and for billing purposes.
+Resources:
+
+  # VPC resource creates a virtual network with the specified CIDR block. DNS hostnames and DNS support is enabled
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Sub ${ProjectName}-VPC
+
+  # InternetGateway resource creates an internet gateway for internet access to the VPC.
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub ${ProjectName}-IGW
+
+  # VPCGatewayAttachment resource attaches the internet gateway to the VPC.
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # PublicSubnet resource creates a public subnet in the VPC
+  #The subnet will have a range of IP addresses from the specified CIDR block
+  #This assigns an availability zone for the subnet using the !Select function. 
+  #!GetAZs is used to get the list of availability zones in the region where the stack is being created 
+  #!Select [0, !GetAZs] will select the first one from that list.
+  #MapPublicIpOnLaunch is set to true to automatically assign public IP addresses to instances launched in this subnet.
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-Public-Subnet-AZ1
+
+  # PrivateSubnet resource creates a private subnet in the VPC
+  #The instance launched in this subnet will not have a public IP address assigned to it. 
+  #This is used for resources that do not need to be accessed from the Internet.
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-Private-Subnet-AZ1
+
+  #We need to create a public subnet in the second Availability Zone for high availability and fault tolerance.
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-Public-Subnet-AZ2
+
+  #We need to create a private subnet in the second Availability Zone for high availability and fault tolerance.
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-Private-Subnet-AZ2
+  
+  # RouteTable resource creates a route table for the VPC
+  # This route table will be associated with the public subnets to define the routing rules for the traffic.
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-Public-Route-Table
+
+  # PublicRoute resource creates a route in the route table to the internet gateway, allowing traffic to flow to the Internet.
+  #The DestinationCidrBlock is set to 0.0.0.0/0, which is the CIDR block that matches all IP addresses. 
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # PublicSubnetRouteTableAssociation resource associates the public route table with the public subnets
+  PublicSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # EC2SecurityGroup allows you to specify which traffic is allowed to reach the instances that belong to this security group.
+  # In this case, we are allowing traffic on port 80 from the ALB Security Group.
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'EC2 Security Group'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-EC2-Security-Group
+
+  InterfaceEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'EC2 Security Group'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-EC2-Security-Group
+
+  ConsumerEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI] 
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName} EC2 Instance
+
+  InterfaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.vpce.${AWS::Region}.${EndpointServiceId}
+      VpcId: !Ref VPC
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroupIds:
+        - !Ref InterfaceEndpointSecurityGroup
+
+# Outputs section of the template allows you to define the outputs of the template that you want to be displayed after the stack is created.
+# In this template, we are outputting the URL of the website that is served by the Application Load Balancer.
+Outputs:
+  ConsumerEC2Instance:
+    Description: The public DNS name of the EC2 instance
+    Value: !GetAtt ConsumerEC2Instance.PublicDnsName
+    Export:
+      Name: !Sub ${ProjectName}-ConsumerEC2Instance
+
+  InterfaceEndpointId:
+    Description: The ID of the interface endpoint
+    Value: !Ref InterfaceEndpoint
+    Export:
+      Name: !Sub ${ProjectName}-InterfaceEndpointId
+
+  InterfaceEndpointDnsName:
+    Description: The DNS name of the interface endpoint
+    Value: !Select [0, !GetAtt InterfaceEndpoint.DnsEntries[*].DnsName]
+    Export:
+      Name: !Sub ${ProjectName}-InterfaceEndpointDnsName
+
