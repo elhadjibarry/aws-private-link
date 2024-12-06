@@ -383,18 +383,17 @@ Resources:
         - !Ref NetworkLoadBalancer
       AcceptanceRequired: true
 
+  EndpointServicePermissions:
+    Type: AWS::EC2::VPCEndpointServicePermissions
+    Properties:
+      ServiceId: !Ref EndpointService
+      AllowedPrincipals:
+        - !Sub arn:aws:iam::${AWS::AccountId}:user/ec2-user
+
 # Outputs section of the template allows you to define the outputs of the template that you want to be displayed after the stack is created.
 # In this template, we are outputting the URL of the website that is served by the Application Load Balancer.
 Outputs:
-  NLBEndpoint:
-    Description: Network Load Balancer Endpoint
-    Value: !GetAtt NetworkLoadBalancer.DNSName
-    Export:
-      Name: !Sub ${ProjectName}-NLBEndpoint
-
   EndpointServiceId:
-    Description: VPC Endpoint Service Name
+    Description: VPC Endpoint Service Id
     Value: !Ref EndpointService
-    Export:
-      Name: !Sub ${ProjectName}-EndpointServiceName
 

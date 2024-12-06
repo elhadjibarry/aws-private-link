@@ -234,9 +234,9 @@ Resources:
   InterfaceEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
+      VpcEndpointType: Interface
       ServiceName: !Sub com.amazonaws.vpce.${AWS::Region}.${EndpointServiceId}
       VpcId: !Ref VPC
-      VpcEndpointType: Interface
       SubnetIds:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
@@ -246,21 +246,11 @@ Resources:
 # Outputs section of the template allows you to define the outputs of the template that you want to be displayed after the stack is created.
 # In this template, we are outputting the URL of the website that is served by the Application Load Balancer.
 Outputs:
-  ConsumerEC2Instance:
-    Description: The public DNS name of the EC2 instance
-    Value: !GetAtt ConsumerEC2Instance.PublicDnsName
-    Export:
-      Name: !Sub ${ProjectName}-ConsumerEC2Instance
-
   InterfaceEndpointId:
     Description: The ID of the interface endpoint
     Value: !Ref InterfaceEndpoint
-    Export:
-      Name: !Sub ${ProjectName}-InterfaceEndpointId
 
   InterfaceEndpointDnsName:
     Description: The DNS name of the interface endpoint
-    Value: !Select [0, !GetAtt InterfaceEndpoint.DnsEntries[*].DnsName]
-    Export:
-      Name: !Sub ${ProjectName}-InterfaceEndpointDnsName
+    Value: !Select ['1', !Split [':', !Select ['0', !GetAtt InterfaceEndpoint.DnsEntries]]]
 
