@@ -281,6 +281,20 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable2
       SubnetId: !Ref PrivateSubnet2
 
+  NLBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: NLB Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: !Ref VpcCIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-NLB-Security-Group
+
   # EC2SecurityGroup allows you to specify which traffic is allowed to reach the instances that belong to this security group.
   # In this case, we are allowing traffic on port 80 from the ALB Security Group.
   EC2SecurityGroup:
@@ -292,7 +306,7 @@ Resources:
       - IpProtocol: tcp
         FromPort: 80
         ToPort: 80
-        CidrIp: 0.0.0.0/0
+        SourceSecurityGroupId: !GetAtt NLBSecurityGroup.GroupId
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName}-EC2-Security-Group
@@ -341,11 +355,13 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties: 
       Name: !Sub ${ProjectName}-NLB
+      Scheme: internal
+      Type: network
+      SecurityGroups:
+        - !GetAtt NLBSecurityGroup.GroupId
       Subnets: 
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
-      Scheme: internal
-      Type: network
       LoadBalancerAttributes:
         - Key: load_balancing.cross_zone.enabled
           Value: 'true'
@@ -382,13 +398,6 @@ Resources:
       NetworkLoadBalancerArns:
         - !Ref NetworkLoadBalancer
       AcceptanceRequired: true
-
-  EndpointServicePermissions:
-    Type: AWS::EC2::VPCEndpointServicePermissions
-    Properties:
-      ServiceId: !Ref EndpointService
-      AllowedPrincipals:
-        - !Sub arn:aws:iam::${AWS::AccountId}:user/ec2-user
 
 # Outputs section of the template allows you to define the outputs of the template that you want to be displayed after the stack is created.
 # In this template, we are outputting the URL of the website that is served by the Application Load Balancer.

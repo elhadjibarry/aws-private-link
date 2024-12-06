@@ -213,16 +213,16 @@ Resources:
   InterfaceEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'EC2 Security Group'
+      GroupDescription: 'InterfaceEndpoint Security Group'
       VpcId: !Ref VPC
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 80
         ToPort: 80
-        CidrIp: 0.0.0.0/0
+        CidrIp: !Ref VpcCIDR
       Tags:
         - Key: Name
-          Value: !Sub ${ProjectName}-EC2-Security-Group
+          Value: !Sub ${ProjectName}-InterfaceEndpoint-Security-Group
 
   ConsumerEC2Instance:
     Type: AWS::EC2::Instance
