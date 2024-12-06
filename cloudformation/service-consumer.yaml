@@ -58,6 +58,11 @@ Parameters:
     Description: Please enter the ID of the endpoint service provider
     Type: String
 
+  PrivateDomainName:
+    Description:  Please enter the private domain name of your choice to create a Route 53 record
+    Type: String
+    Default: myservice.local
+
 #Mappings are used to map keys to corresponding values that are used in the template depending on the region where the stack is being created.
 #In this template, we are using a mapping to map the region to the AMI ID of Amazon Linux 2023
 # You may need to update the AMI ID. You can find the latest AMI IDs on the AWS website or AWS Management Console.
@@ -243,6 +248,27 @@ Resources:
       SecurityGroupIds:
         - !Ref InterfaceEndpointSecurityGroup
 
+  PrivateHostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Ref PrivateDomainName
+      VPCs:
+        - VPCId: !Ref VPC
+          VPCRegion: !Ref "AWS::Region"
+      HostedZoneConfig:
+        Comment: "Private hosted zone for VPC endpoint"
+
+  PrivateRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PrivateHostedZone
+      Name: !Ref PrivateDomainName
+      Type: A
+      AliasTarget:
+        HostedZoneId: !Select ['0', !Split [':', !Select ['0', !GetAtt InterfaceEndpoint.DnsEntries]]]
+        DNSName: !Select ['1', !Split [':', !Select ['0', !GetAtt InterfaceEndpoint.DnsEntries]]]
+        EvaluateTargetHealth: true
+
 # Outputs section of the template allows you to define the outputs of the template that you want to be displayed after the stack is created.
 # In this template, we are outputting the URL of the website that is served by the Application Load Balancer.
 Outputs:
@@ -253,4 +279,11 @@ Outputs:
   InterfaceEndpointDnsName:
     Description: The DNS name of the interface endpoint
     Value: !Select ['1', !Split [':', !Select ['0', !GetAtt InterfaceEndpoint.DnsEntries]]]
+
+  PrivateDomainName:
+    Description: The private domain name of the Route 53 record
+    Value: !Join
+      - ''
+      - - 'http://'
+        - !Ref PrivateDomainName
 
