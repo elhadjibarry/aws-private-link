@@ -1,4 +1,4 @@
-Description:  This template will deploy a Service Provider infrastructure in with a Network Load Balancer (NLB) 
+Description:  This template will deploy a Service Provider infrastructure with a Network Load Balancer (NLB) 
   and two EC2 instances in private subnets across two Availability Zones.
   The NLB will distribute traffic to the EC2 instances. The EC2 instances will serve a simple web page. 
   The template also creates VPC, subnets, Internet Gateway, NAT Gateways, and route tables for the infrastructure.
@@ -64,8 +64,8 @@ Mappings:
       "AMI": "ami-0d081196e3df05f4d"
 
 Resources:
-  # VPC resource creates a virtual network with the specified CIDR block. DNS hostnames and DNS support is enabled
-  VPC:
+  # Service Provider VPC resource creates a virtual network with the specified CIDR block. DNS hostnames and DNS support is enabled
+  ServiceProviderVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCIDR
@@ -87,14 +87,14 @@ Resources:
   InternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       InternetGatewayId: !Ref InternetGateway
 
   # Creates a public subnet in the VPC in the first Availability Zone.
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       CidrBlock: !Ref PublicSubnet1CIDR
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       MapPublicIpOnLaunch: true
@@ -106,7 +106,7 @@ Resources:
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       CidrBlock: !Ref PrivateSubnet1CIDR
       AvailabilityZone: !Select [ 0, !GetAZs  '' ]
       MapPublicIpOnLaunch: false
@@ -118,7 +118,7 @@ Resources:
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       CidrBlock: !Ref PublicSubnet2CIDR
       AvailabilityZone: !Select [ 1, !GetAZs  '' ]
       MapPublicIpOnLaunch: true
@@ -130,7 +130,7 @@ Resources:
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       CidrBlock: !Ref PrivateSubnet2CIDR
       AvailabilityZone: !Select [ 1, !GetAZs  '' ]
       MapPublicIpOnLaunch: false
@@ -186,7 +186,7 @@ Resources:
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName}-Public-Route-Table
@@ -216,7 +216,7 @@ Resources:
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName}-Private-Route-Table-AZ1
@@ -240,7 +240,7 @@ Resources:
   PrivateRouteTable2:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName}-Private-Route-Table-AZ2
@@ -266,7 +266,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: NLB Security Group
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 80
@@ -282,7 +282,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: 'EC2 Security Group'
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 80
@@ -356,7 +356,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub ${ProjectName}-NLB-TargetGroup
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceProviderVPC
       Port: 80
       Protocol: TCP
       TargetType: instance

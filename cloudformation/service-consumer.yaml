@@ -1,4 +1,4 @@
-Description:  This template deploys an interface VPC endpoint in the ServiceConsumer VPC.
+Description:  This template deploys the infrastructure for an interface VPC endpoint in the ServiceConsumer VPC.
   This will be the consumer to access a service that is exposed as an endpoint service in a different VPC.
   This allows an EC2 instance in the ServiceConsumer VPC to access a service provider without going over the internet.
   We will also deploy a private hosted zone in Route 53 to create a user friendly domain name for the interface endpoint.
@@ -22,20 +22,10 @@ Parameters:
     Type: String
     Default: 10.1.1.0/24
 
-  PrivateSubnet1CIDR:
-    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
-    Type: String
-    Default: 10.1.2.0/24
-
   PublicSubnet2CIDR:
     Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
     Type: String
     Default: 10.1.3.0/24
-
-  PrivateSubnet2CIDR:
-    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
-    Type: String
-    Default: 10.1.4.0/24
 
   InstanceType:
     Description: EC2 WebServer  instance type
@@ -58,9 +48,9 @@ Parameters:
     Type: String
     Default: myservice.local
 
-#Mappings are used to map keys to corresponding values that are used in the template depending on the region where the stack is being created.
-#In this template, we are using a mapping to map the region to the AMI ID of Amazon Linux 2023
-# You may need to update the AMI ID. You can find the latest AMI IDs on the AWS website or AWS Management Console.
+# Mapping to map the region to the AMI ID of Amazon Linux 2023
+# You may need to update the AMI ID or add more regions. 
+# You can find the latest AMI IDs on the AWS website or AWS Management Console.
 Mappings:
   RegionMap:
     us-east-1:
@@ -72,12 +62,10 @@ Mappings:
     us-west-2:
       "AMI": "ami-0d081196e3df05f4d"
 
-#Resources are the core of the template. They represent the different AWS components that will be created when the template is deployed.
-#All the resources are tagged with the project name to easily identify them in the AWS Management Console and for billing purposes.
 Resources:
 
-  # VPC resource creates a virtual network with the specified CIDR block. DNS hostnames and DNS support is enabled
-  VPC:
+  # Service Consumer VPC resource creates a virtual network with the specified CIDR block. DNS hostnames and DNS support is enabled
+  ServiceConsumerVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCIDR
@@ -99,7 +87,7 @@ Resources:
   InternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceConsumerVPC
       InternetGatewayId: !Ref InternetGateway
 
   # PublicSubnet resource creates a public subnet in the VPC
@@ -111,7 +99,7 @@ Resources:
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceConsumerVPC
       CidrBlock: !Ref PublicSubnet1CIDR
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       MapPublicIpOnLaunch: true
@@ -119,50 +107,25 @@ Resources:
         - Key: Name
           Value: !Sub ${ProjectName}-Public-Subnet-AZ1
 
-  # PrivateSubnet resource creates a private subnet in the VPC
-  #The instance launched in this subnet will not have a public IP address assigned to it. 
-  #This is used for resources that do not need to be accessed from the Internet.
-  PrivateSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: !Ref PrivateSubnet1CIDR
-      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
-      MapPublicIpOnLaunch: false
-      Tags:
-        - Key: Name
-          Value: !Sub ${ProjectName}-Private-Subnet-AZ1
 
   #We need to create a public subnet in the second Availability Zone for high availability and fault tolerance.
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceConsumerVPC
       CidrBlock: !Ref PublicSubnet2CIDR
       AvailabilityZone: !Select [ 1, !GetAZs  '' ]
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName}-Public-Subnet-AZ2
-
-  #We need to create a private subnet in the second Availability Zone for high availability and fault tolerance.
-  PrivateSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: !Ref PrivateSubnet2CIDR
-      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
-      MapPublicIpOnLaunch: false
-      Tags:
-        - Key: Name
-          Value: !Sub ${ProjectName}-Private-Subnet-AZ2
   
   # RouteTable resource creates a route table for the VPC
   # This route table will be associated with the public subnets to define the routing rules for the traffic.
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceConsumerVPC
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName}-Public-Route-Table
@@ -195,7 +158,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: 'EC2 Security Group'
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceConsumerVPC
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 22
@@ -209,7 +172,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: 'InterfaceEndpoint Security Group'
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceConsumerVPC
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 80
@@ -236,7 +199,7 @@ Resources:
     Properties:
       VpcEndpointType: Interface
       ServiceName: !Sub com.amazonaws.vpce.${AWS::Region}.${EndpointServiceId}
-      VpcId: !Ref VPC
+      VpcId: !Ref ServiceConsumerVPC
       SubnetIds:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
@@ -248,7 +211,7 @@ Resources:
     Properties:
       Name: !Ref PrivateDomainName
       VPCs:
-        - VPCId: !Ref VPC
+        - VPCId: !Ref ServiceConsumerVPC
           VPCRegion: !Ref "AWS::Region"
       HostedZoneConfig:
         Comment: "Private hosted zone for VPC endpoint"
