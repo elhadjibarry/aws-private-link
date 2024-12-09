@@ -64,7 +64,7 @@ Mappings:
       "AMI": "ami-0d081196e3df05f4d"
 
 Resources:
-  # Service Provider VPC resource creates a virtual network with the specified CIDR block. DNS hostnames and DNS support is enabled
+  # Creates a virtual network for the Service Provider infrastructure with the specified CIDR block.
   ServiceProviderVPC:
     Type: AWS::EC2::VPC
     Properties:
