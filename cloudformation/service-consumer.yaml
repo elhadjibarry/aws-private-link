@@ -1,12 +1,7 @@
-Description:  This template deploys the following resources
-  VPC, with 2 AZs and a public and private subnet on each AZ.
-  Internet gateway, with a default route on the public subnets.  
-  NAT gateways (one in each AZ), and default routes for them in the private subnets.
-  EC2 instance in each private subnet, with a simple web page that displays the AZ of the instance.
-  Application Load Balancer that will distribute traffic between the EC2 instances.
-  Auto Scaling Group that will maintain the desired number of EC2 instances depending on the load. 
-  Security groups for the EC2 instances and the Application Load Balancer.
-  Optional - Route 53 record to point to the Application Load Balancer.
+Description:  This template deploys an interface VPC endpoint in the ServiceConsumer VPC.
+  This will be the consumer to access a service that is exposed as an endpoint service in a different VPC.
+  This allows an EC2 instance in the ServiceConsumer VPC to access a service provider without going over the internet.
+  We will also deploy a private hosted zone in Route 53 to create a user friendly domain name for the interface endpoint.
 
 #Parameters to be passed to the template at the time of deployment. 
 #You can pass these parameters through the AWS Management Console, AWS CLI, or AWS SDKs.
