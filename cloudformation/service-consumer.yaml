@@ -162,7 +162,7 @@ Resources:
           Value: !Sub ${ProjectName}-EC2-Security-Group
 
   # InterfaceEndpointSecurityGroup allows you to specify which traffic is allowed to reach the interface endpoint.
-  # We allow http traffic on port 80 from the VPC CIDR block because only the EC2 instance will access the interface endpoint.
+  # We allow http traffic on port 80 from the VPC CIDR block only because the resources in this VPC will access the interface endpoint.
   InterfaceEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -178,7 +178,7 @@ Resources:
           Value: !Sub ${ProjectName}-InterfaceEndpoint-Security-Group
 
   # ConsumerEC2Instance resource creates an EC2 instance in the public subnet to access the interface endpoint.
-  ConsumerEC2Instance:
+  ConsumerEC2Instance1:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI] 
@@ -188,7 +188,19 @@ Resources:
       SubnetId: !Ref PublicSubnet1
       Tags:
         - Key: Name
-          Value: !Sub ${ProjectName} EC2 Instance
+          Value: !Sub ${ProjectName} EC2 Instance 1
+
+  ConsumerEC2Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI] 
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName} EC2 Instance 2
 
   # InterfaceEndpoint resource creates an interface endpoint with the service provider name.
   InterfaceEndpoint:

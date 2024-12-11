@@ -261,7 +261,7 @@ Resources:
       SubnetId: !Ref PrivateSubnet2
 
   # NLBSecurityGroup to specify which traffic is allowed to reach the Network Load Balancer.
-  # Since the NLB is internal and we are using a Private Link, we allow traffic on port 80 from the VPC CIDR block only.
+  # Since the NLB is internal and we are using a Private Link, we only allow traffic on port 80 from the VPC CIDR block.
   NLBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
