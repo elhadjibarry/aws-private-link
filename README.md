@@ -144,7 +144,7 @@ aws ec2 accept-vpc-endpoint-connections --service-id <service-id> --vpc-endpoint
 
 ### 3.2 Test the Connection to the Service Provider
 
-- Connect to one of the Service Consumer EC2 using **EC2 Instance Connect** in the AWS Management Console and use a **curl** command to access the service via the Rout53 private domain name or the Interface VPC endpoint DNS name. You can retrieve them from the AWS Management Console or the output of the CloudFormation Service Consumer stack.
+- Connect to one of the Service Consumer EC2 instance using **EC2 Instance Connect** in the AWS Management Console and use a **curl** command to access the service via the Rout53 private domain name or the Interface VPC endpoint DNS name. You can retrieve them from the AWS Management Console or the output of the Service Consumer CloudFormation stack.
 
 - You should see the following response from the web server running on the EC2 instances in the Service Provider VPC. This confirms that the interface VPC endpoint and the private hosted zone are correctly configured and that the Service Consumer can access the Service Provider via AWS PrivateLink. The alternating value of the availability zone shows that the Network Load Balancer is also working properly.
 
