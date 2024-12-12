@@ -78,7 +78,7 @@ The following parameters can be customized at the time of deployment:
 | `PublicSubnet1CIDR`   | IP range (CIDR notation) for the public subnet in the first Availability Zone | String | `10.1.1.0/24`     |
 | `PublicSubnet2CIDR`   | IP range (CIDR notation) for the public subnet in the second Availability Zone | String | `10.1.3.0/24`     |
 | `InstanceType`        | EC2 instance type                                                  | String | `t2.micro`        |
-| `EndpointServiceId`   | The ID of the endpoint service provider. You can retrieve it from the AWS Management Console or the output of the Service Provider stack             | String |    |
+| `EndpointServiceId`   | The ID of the endpoint service provider. You can retrieve it from the AWS Management Console or the output of the Service Provider CloudFormation stack             | String |    |
 | `PrivateDomainName`   | The private domain name for the Route 53 hosted zone               | String | `service.local`   |
 
 ### 2.2 Resources
@@ -129,7 +129,7 @@ After deploying both the Service Provider and Service Consumer stacks, you can t
 - Confirm the Acceptance: In the confirmation dialog, click **Accept** to approve the connection request.
 - Wait until the request is accepted: The state should be **Available**.
 
-#### 3.1.1 Using the AWS CLI
+#### 3.1.2 Using the AWS CLI
 
 - List all pending VPC endpoint connection requests for your endpoint service. Replace <service-id> with the ID of your endpoint service. You can retrieve it from the AWS Management Console or the output of the Service Provider stack. The VpcEndpointState should be **pendingAcceptance**
 ```bash

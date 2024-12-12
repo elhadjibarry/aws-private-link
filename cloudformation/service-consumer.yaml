@@ -162,7 +162,7 @@ Resources:
           Value: !Sub ${ProjectName}-EC2-Security-Group
 
   # InterfaceEndpointSecurityGroup allows you to specify which traffic is allowed to reach the interface endpoint.
-  # We allow http traffic on port 80 from the VPC CIDR block only because the resources in this VPC will access the interface endpoint.
+  # We allow http traffic on port 80 from the VPC CIDR block because only the resources in this VPC will access the interface endpoint.
   InterfaceEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
